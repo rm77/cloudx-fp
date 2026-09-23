@@ -14,7 +14,7 @@ docker build -f docker/Dockerfile.job -t local/data-generator-job:latest .
 kind load docker-image local/data-generator-job:latest --name mylab99
 
 verifikasi
-docker exec -it <nama-cluster-kind-anda>-control-plane crictl images | grep data-generator-job
+docker exec -it mylab99-control-plane crictl images | grep data-generator-job
 
 cek
 kubectl run smoke-test --rm -it --restart=Never -n testbed-jobs \
