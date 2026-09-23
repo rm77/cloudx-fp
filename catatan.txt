@@ -1,0 +1,28 @@
+kubectl config current-context   # pastikan menunjuk ke cluster kind Anda
+kubectl get nodes                # pastikan node Ready
+kubectl create namespace testbed-jobs --dry-run=client -o yaml | kubectl apply -f -
+
+python3 -m venv venv && source venv/bin/activate
+pip install kubernetes psutil pandas numpy scikit-learn
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+
+build image ke kind
+
+cd data_generator
+docker build -f docker/Dockerfile.job -t local/data-generator-job:latest .
+kind load docker-image local/data-generator-job:latest --name mylab99
+
+verifikasi
+docker exec -it <nama-cluster-kind-anda>-control-plane crictl images | grep data-generator-job
+
+cek
+kubectl run smoke-test --rm -it --restart=Never -n testbed-jobs \
+  --image=local/data-generator-job:latest \
+  --overrides='{"spec":{"containers":[{"name":"smoke-test","image":"local/data-generator-job:latest","command":["python","scenarios/benign_eda_notebook.py","--duration-sec","10"]}]}}'
+
+
+run experiment
+python run_experiment.py --executor k8s --repeats 10 --out-dir data
+
+

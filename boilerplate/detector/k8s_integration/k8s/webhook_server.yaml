@@ -1,0 +1,77 @@
+# detector/k8s_integration/k8s/webhook_server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detector-webhook-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: detector-webhook-server
+  template:
+    metadata:
+      labels:
+        app: detector-webhook-server
+    spec:
+      containers:
+        - name: webhook
+          image: REPLACE_ME/detector-webhook-server:latest
+          ports:
+            - containerPort: 8443
+          env:
+            - name: DETECTOR_CLASS_PATH
+              value: "REPLACE_ME.YourDetectorClass"
+            - name: MODEL_PATH
+              value: /model/model.bin
+            - name: ANOMALY_THRESHOLD
+              value: "0.0"  # TODO: isi hasil evaluate.py
+          volumeMounts:
+            - name: model
+              mountPath: /model
+              readOnly: true
+            - name: certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: model
+          configMap:
+            name: detector-model  # TODO
+        - name: certs
+          secret:
+            secretName: detector-webhook-tls  # TODO: generate self-signed cert
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: detector-webhook-server
+spec:
+  selector:
+    app: detector-webhook-server
+  ports:
+    - port: 443
+      targetPort: 8443
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: detector-admission-check
+webhooks:
+  - name: detector-webhook.testbed.io
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Ignore  # TODO: ganti "Fail" setelah webhook teruji stabil
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["pods"]
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: testbed-jobs  # TODO: sesuaikan namespace target
+    clientConfig:
+      service:
+        name: detector-webhook-server
+        namespace: default  # TODO: sesuaikan namespace deployment webhook
+        path: /
+        port: 443
+      caBundle: "REPLACE_ME_BASE64_CA_BUNDLE"  # TODO: isi dari cert yang dibuat

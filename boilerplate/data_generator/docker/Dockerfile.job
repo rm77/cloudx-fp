@@ -1,0 +1,29 @@
+# data_generator/docker/Dockerfile.job
+# ============================================================================
+# Image CPU-only (tanpa CUDA) -- lebih ringan & cepat di-build/dimuat ke
+# kind dibanding image berbasis nvidia/cuda, karena tidak ada GPU di cluster.
+# Build context HARUS root data_generator/ (bukan folder docker/), karena
+# perlu meng-COPY scenario_base.py, registry.py, dkk yang ada di root.
+#
+# Build & load ke kind:
+#   cd data_generator
+#   docker build -f docker/Dockerfile.job -t local/data-generator-job:latest .
+#   kind load docker-image local/data-generator-job:latest --name <nama-cluster>
+# ============================================================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    torch --index-url https://download.pytorch.org/whl/cpu 
+RUN pip install psutil pandas numpy
+
+COPY scenario_base.py registry.py telemetry_sidecar.py /app/
+COPY scenarios/ /app/scenarios/
+
+# WAJIB: job container dijalankan sebagai `python scenarios/xxx.py` (path
+# relatif dari WORKDIR /app), sehingga Python secara default hanya
+# menambahkan folder scenarios/ ke sys.path, BUKAN /app -- akibatnya
+# `from scenario_base import Scenario` di tiap file skenario akan gagal
+# tanpa baris ini.
+ENV PYTHONPATH=/app

@@ -1,0 +1,46 @@
+# detector/k8s_integration/k8s/daemon_scorer.yaml
+# TODO: ganti `kind: DaemonSet` -> `kind: Deployment` (+ hapus
+# env NODE_NAME & nodeSelector) jika ingin mode terpusat, bukan per-node.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: detector-daemon-scorer
+spec:
+  selector:
+    matchLabels:
+      app: detector-daemon-scorer
+  template:
+    metadata:
+      labels:
+        app: detector-daemon-scorer
+    spec:
+      serviceAccountName: detector-pod-labeler  # TODO: RBAC get/list/patch pods
+      nodeSelector:
+        gpu-node: "true"
+      containers:
+        - name: daemon-scorer
+          image: REPLACE_ME/detector-daemon-scorer:latest
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef: { fieldPath: spec.nodeName }
+            - name: DETECTOR_CLASS_PATH
+              value: "REPLACE_ME.YourDetectorClass"
+            - name: MODEL_PATH
+              value: /model/model.bin
+            - name: FEATURE_MODE
+              value: "aggregate"  # atau "sequence"
+            - name: ANOMALY_THRESHOLD
+              value: "0.0"        # TODO: isi hasil evaluate.py
+            - name: TARGET_NAMESPACE
+              value: "testbed-jobs"
+            - name: POLL_INTERVAL_SEC
+              value: "15"
+          volumeMounts:
+            - name: model
+              mountPath: /model
+              readOnly: true
+      volumes:
+        - name: model
+          configMap:
+            name: detector-model  # TODO: sesuaikan cara distribusi model
