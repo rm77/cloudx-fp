@@ -22,6 +22,13 @@ cd setup-cluster/kind
 sh 1-create-cluster.sh
 sh 2-set-config.sh
 ```
+atau
+
+## install kubernetes cluster via k0s
+```
+cd setup-cluster/k0s-cluster
+sh up-all.sh
+```
 
 
 ## install supporting metrics collector
