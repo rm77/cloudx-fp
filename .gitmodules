@@ -1,0 +1,3 @@
+[submodule "external/cloud2023"]
+	path = external/cloud2023
+	url = https://github.com/rm77/cloud2023/
