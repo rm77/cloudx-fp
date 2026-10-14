@@ -3,6 +3,12 @@
 cd external/cloud2023/kubernetes
 ```
 
+#### before continuing, pull the latest
+```
+git submodule update --init --recursive
+git submodule update --remote --merge
+```
+
 ## install seluruh prerequisites
 ```
 cd bin
